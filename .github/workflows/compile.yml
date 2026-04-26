@@ -14,6 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare sketch folder
+        run: |
+          # Arduino requires sketch file to match folder name
+          SKETCH=$(find . -maxdepth 1 -name "*.ino" | head -1)
+          SKETCH_NAME=$(basename "$SKETCH" .ino)
+          mkdir -p ./sketch/$SKETCH_NAME
+          cp "$SKETCH" ./sketch/$SKETCH_NAME/$SKETCH_NAME.ino
+          echo "Prepared: ./sketch/$SKETCH_NAME/$SKETCH_NAME.ino"
+
       - name: Compile with arduino-cli action
         uses: arduino/compile-sketches@v1
         with:
@@ -25,8 +34,7 @@ jobs:
             - name: FastLED
             - name: MPU6050_light
           sketch-paths: |
-            - .
-          enable-deltas-report: false
+            - ./sketch
           cli-compile-flags: |
             - --output-dir=./build
 
