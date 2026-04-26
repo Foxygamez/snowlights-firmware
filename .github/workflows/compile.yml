@@ -13,28 +13,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Prepare sketch folder
+      - name: Install Arduino CLI
+        run: |
+          curl -fsSL https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz | tar -xz -C /usr/local/bin
+          arduino-cli version
+
+      - name: Configure Arduino CLI
+        run: |
+          arduino-cli config init
+          arduino-cli config set board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+
+      - name: Install libraries
+        run: |
+          arduino-cli lib install "FastLED"
+          arduino-cli lib install "MPU6050_light"
+
+      - name: Prepare and compile sketch
         run: |
           SKETCH=$(find . -maxdepth 1 -name "*.ino" | head -1)
           SKETCH_NAME=$(basename "$SKETCH" .ino)
           mkdir -p ./sketch/$SKETCH_NAME
           cp "$SKETCH" ./sketch/$SKETCH_NAME/$SKETCH_NAME.ino
-          echo "Prepared: ./sketch/$SKETCH_NAME/$SKETCH_NAME.ino"
-
-      - name: Compile with arduino-cli action
-        uses: arduino/compile-sketches@v1
-        with:
-          fqbn: esp32:esp32:esp32:PartitionScheme=huge_app
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-          libraries: |
-            - name: FastLED
-            - name: MPU6050_light
-          sketch-paths: |
-            - ./sketch
-          cli-compile-flags: |
-            - --output-dir=./build
+          mkdir -p ./build
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32:PartitionScheme=huge_app \
+            --output-dir ./build \
+            ./sketch/$SKETCH_NAME
+          echo "=== Build output ==="
+          ls -la ./build/
+          echo "=== Looking for .bin ==="
+          find ./build -name "*.bin"
 
       - name: Get firmware version
         id: version
@@ -43,13 +53,18 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Firmware version: $VERSION"
 
+      - name: Rename bin for clean URL
+        run: |
+          find ./build -name "*.bin" | head -1 | xargs -I{} cp {} ./firmware.bin
+          ls -la ./firmware.bin
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Firmware v${{ steps.version.outputs.version }}
           body: Auto-compiled SnowLights firmware
-          files: ./build/*.bin
+          files: ./firmware.bin
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
