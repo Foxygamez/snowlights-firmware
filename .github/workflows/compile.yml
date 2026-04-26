@@ -3,7 +3,6 @@ name: Compile and Release Firmware
 on:
   push:
     branches: [ main ]
-    paths: [ '**.ino' ]
 
 jobs:
   build:
@@ -16,7 +15,6 @@ jobs:
 
       - name: Prepare sketch folder
         run: |
-          # Arduino requires sketch file to match folder name
           SKETCH=$(find . -maxdepth 1 -name "*.ino" | head -1)
           SKETCH_NAME=$(basename "$SKETCH" .ino)
           mkdir -p ./sketch/$SKETCH_NAME
@@ -26,7 +24,7 @@ jobs:
       - name: Compile with arduino-cli action
         uses: arduino/compile-sketches@v1
         with:
-          fqbn: esp32:esp32:esp32
+          fqbn: esp32:esp32:esp32:PartitionScheme=huge_app
           platforms: |
             - name: esp32:esp32
               source-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
