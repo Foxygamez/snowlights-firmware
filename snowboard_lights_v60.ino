@@ -32,6 +32,8 @@ unsigned long otaLastMs = 0;
 
 CRGB A[MAXN], B[MAXN];
 
+// trigger
+
 struct GS { uint8_t r,g,b,pos; }; // pos: 0-255 = position along strip
 struct GD { GS s[MAXG]; uint8_t n; uint8_t blend; }; // blend: 0=RGB, 1=HSV wheel
 enum Eff : uint8_t { FADE,PULSE,COMET,ZONES };
