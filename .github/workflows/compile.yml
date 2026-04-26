@@ -5,7 +5,6 @@ on:
     branches: [ main ]
     paths: [ '**.ino' ]
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,37 +14,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Arduino CLI
-        run: |
-          mkdir -p $HOME/bin
-          curl -fsSL https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz | tar -xz -C $HOME/bin
-          echo "$HOME/bin" >> $GITHUB_PATH
-          $HOME/bin/arduino-cli version
-
-      - name: Configure and install ESP32 core
-        run: |
-          arduino-cli config init
-          arduino-cli config set board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-          arduino-cli core update-index
-          arduino-cli core install esp32:esp32 --skip-installation-of-libraries
-
-      - name: Install libraries
-        run: |
-          arduino-cli lib install "FastLED"
-          arduino-cli lib install "MPU6050_light"
-
-      - name: Compile sketch
-        run: |
-          SKETCH=$(find . -name "*.ino" | head -1)
-          SKETCH_DIR=$(dirname "$SKETCH")
-          echo "Compiling: $SKETCH"
-          mkdir -p build
-          arduino-cli compile \
-            --fqbn esp32:esp32:esp32 \
-            --output-dir ./build \
-            "$SKETCH_DIR"
-          echo "Build complete:"
-          ls ./build/
+      - name: Compile with arduino-cli action
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: esp32:esp32:esp32
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          libraries: |
+            - name: FastLED
+            - name: MPU6050_light
+          sketch-paths: |
+            - .
+          enable-deltas-report: false
+          cli-compile-flags: |
+            - --output-dir=./build
 
       - name: Get firmware version
         id: version
