@@ -12,7 +12,6 @@
 #include <WebServer.h>
 #include <Update.h>
 
-
 // ── OTA WiFi config ──────────────────────────────────────────
 // Board hosts its own AP — connect phone to this network, then
 // navigate to http://192.168.4.1 to upload new firmware.
