@@ -1,0 +1,57 @@
+name: Compile and Release Firmware
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ '**.ino' ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Arduino CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Configure Arduino CLI
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+          arduino-cli lib install "FastLED"
+          arduino-cli lib install "MPU6050_light"
+          arduino-cli lib install "BLE"
+
+      - name: Find and compile sketch
+        run: |
+          SKETCH=$(find . -name "*.ino" | head -1)
+          SKETCH_DIR=$(dirname "$SKETCH")
+          SKETCH_NAME=$(basename "$SKETCH_DIR")
+          echo "Compiling: $SKETCH"
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32 \
+            --output-dir ./build \
+            "$SKETCH_DIR"
+          ls ./build/
+
+      - name: Get version from sketch
+        id: version
+        run: |
+          VERSION=$(grep -o 'FW_VERSION "[^"]*"' *.ino | grep -o '"[^"]*"' | tr -d '"')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Firmware version: $VERSION"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Firmware v${{ steps.version.outputs.version }}
+          body: Auto-compiled firmware release
+          files: ./build/*.bin
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
