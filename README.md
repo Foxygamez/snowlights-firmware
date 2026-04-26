@@ -1,1 +1,0 @@
-# snowlights-firmware
