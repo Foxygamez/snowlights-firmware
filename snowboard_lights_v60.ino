@@ -1,3 +1,4 @@
+// v60
 // Snowboard LED v60 — ESP32 / MPU6050 / WS2811 / BLE
 // Heel strip = GPIO18 (A), Toe strip = GPIO16 (B)
 #include <Wire.h>
